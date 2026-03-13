@@ -16,7 +16,10 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
     });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch (_e) {
+    return NextResponse.json([], {
+      status: 200,
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" },
+    });
   }
 }

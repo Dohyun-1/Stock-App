@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, lazy, Suspense } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Loader2, Target, BookOpen, GraduationCap, Calculator } from "lucide-react";
 import NewsSection from "@/components/NewsSection";
 
@@ -75,9 +76,36 @@ const TABS: { key: TabId; label: string; icon: React.ReactNode; color: string }[
   { key: "calculator", label: "수익률 계산", icon: <Calculator size={16} />, color: "bg-emerald-500" },
 ];
 
-export default function InvestorsGuidePage() {
+function InvestorsGuideContent() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
   const [tab, setTab] = useState<TabId>("portfolio");
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = typeof window !== "undefined" ? window.location.search : "";
+    const params = new URLSearchParams(q);
+    const t = params.get("tab");
+    if (t === "portfolio" || t === "mentor" || t === "guide" || t === "calculator") {
+      setTab(t);
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "portfolio" || t === "mentor" || t === "guide" || t === "calculator") {
+      setTab(t);
+    }
+  }, [searchParams]);
+
+  const setTabAndUrl = (key: TabId) => {
+    setTab(key);
+    const url = key === "portfolio" ? pathname : `${pathname}?tab=${key}`;
+    window.history.replaceState(null, "", url);
+    router.replace(url, { scroll: false });
+  };
 
   const [mentorStocks, setMentorStocks] = useState<{ symbol: string; name: string; price: number; score: number; pe: number; dividendYield: number; beta: number; forwardPE?: number | null; pegRatio?: number | null; debtToEquity?: number | null; operatingMargins?: number | null; revenueGrowth?: number | null; freeCashflow?: number | null; marketCap?: number; advanced?: Record<string, number>; nativeCurrency?: string }[]>([]);
   const [mentorLoading, setMentorLoading] = useState(false);
@@ -117,7 +145,7 @@ export default function InvestorsGuidePage() {
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => setTabAndUrl(t.key)}
             className={`flex items-center gap-1.5 rounded-lg px-4 py-2.5 font-medium transition ${
               tab === t.key
                 ? `${t.color} text-white shadow-lg`
@@ -221,5 +249,22 @@ export default function InvestorsGuidePage() {
 
       <NewsSection />
     </div>
+  );
+}
+
+export default function InvestorsGuidePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="flex items-center justify-center gap-3 p-16">
+            <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+            <span className="text-sm text-slate-400">로딩 중...</span>
+          </div>
+        </div>
+      }
+    >
+      <InvestorsGuideContent />
+    </Suspense>
   );
 }

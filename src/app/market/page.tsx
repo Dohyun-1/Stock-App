@@ -210,6 +210,14 @@ function DetailChart({
   if (loading)
     return <div className="flex items-center justify-center text-white" style={{ height: chartHeight || 160 }}>로딩...</div>;
 
+  if (data.length === 0)
+    return (
+      <div className="flex flex-col items-center justify-center gap-1 text-white/70" style={{ height: chartHeight || 160 }}>
+        <span className="text-sm">데이터를 불러오지 못했습니다.</span>
+        <span className="text-xs">잠시 후 새로고침 해 주세요.</span>
+      </div>
+    );
+
   return <ClientChart data={data} period={period} isUp={isUp} chartId={chartId} height={chartHeight} baselineClose={prevClose ?? undefined} />;
 }
 

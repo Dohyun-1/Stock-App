@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DebateMessage",
+  "type": "object",
+  "required": ["ticker", "consensus_score", "messages"],
+  "properties": {
+    "ticker": { "type": "string" },
+    "consensus_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "messages": { "type": "array", "items": { "type": "string" } },
+    "disagreements": { "type": "array", "items": { "type": "string" } }
+  }
+}

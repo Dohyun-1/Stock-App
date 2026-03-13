@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MarketEvent",
+  "type": "object",
+  "required": ["ticker", "event_type", "timestamp"],
+  "properties": {
+    "ticker": { "type": "string" },
+    "event_type": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "payload": { "type": "object" }
+  }
+}

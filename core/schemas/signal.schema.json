@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Signal",
+  "type": "object",
+  "required": ["ticker", "direction", "score", "horizon_days", "rationale"],
+  "properties": {
+    "ticker": { "type": "string" },
+    "direction": { "enum": ["long", "short", "neutral"] },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "horizon_days": { "type": "integer", "minimum": 1 },
+    "rationale": { "type": "string" }
+  }
+}

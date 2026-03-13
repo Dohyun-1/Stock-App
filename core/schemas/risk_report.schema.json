@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RiskReport",
+  "type": "object",
+  "required": ["idea_id", "var_95", "cvar_95", "max_drawdown_est", "limit_pass"],
+  "properties": {
+    "idea_id": { "type": "string" },
+    "var_95": { "type": "number" },
+    "cvar_95": { "type": "number" },
+    "max_drawdown_est": { "type": "number" },
+    "limit_pass": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

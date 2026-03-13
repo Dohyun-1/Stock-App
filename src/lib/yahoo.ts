@@ -1,8 +1,26 @@
 // Yahoo Finance API with crumb-based authentication
+import https from "https";
 
 const BASE = "https://query1.finance.yahoo.com";
 const BASE_FALLBACK = "https://query2.finance.yahoo.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
+const REFERER = "https://finance.yahoo.com/";
+
+function rawGet(url: string, timeoutMs = 12000): Promise<{ status: number; body: string; headers: Record<string, string | string[] | undefined> }> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { "User-Agent": UA, Referer: REFERER }, timeout: timeoutMs }, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        const h: Record<string, string | string[] | undefined> = {};
+        for (const [k, v] of Object.entries(res.headers)) h[k] = v;
+        resolve({ status: res.statusCode ?? 0, body, headers: h });
+      });
+    });
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
+  });
+}
 
 let _crumb: string | null = null;
 let _cookie: string | null = null;
@@ -14,7 +32,7 @@ async function getCrumb(): Promise<{ crumb: string; cookie: string } | null> {
   }
   try {
     const cookieRes = await fetch("https://fc.yahoo.com/", {
-      headers: { "User-Agent": UA },
+      headers: { "User-Agent": UA, Referer: REFERER },
       redirect: "manual",
     });
     const setCookies = cookieRes.headers.getSetCookie?.() ?? [];
@@ -32,7 +50,7 @@ async function getCrumb(): Promise<{ crumb: string; cookie: string } | null> {
 
     const crumbRes = await fetch(
       `${BASE_FALLBACK}/v1/test/getcrumb`,
-      { headers: { "User-Agent": UA, Cookie: `A3=${a3}` }, cache: "no-store" }
+      { headers: { "User-Agent": UA, Referer: REFERER, Cookie: `A3=${a3}` }, cache: "no-store" }
     );
     if (!crumbRes.ok) return null;
     const crumb = await crumbRes.text();
@@ -74,6 +92,7 @@ export async function fetchWithTimeout(
   const auth = await getCrumb();
   const headers: Record<string, string> = {
     "User-Agent": UA,
+    Referer: REFERER,
     ...(init?.headers as Record<string, string> | undefined),
   };
   if (auth?.cookie) headers["Cookie"] = auth.cookie;
@@ -96,19 +115,28 @@ export async function fetchWithTimeout(
     }
   };
 
+  const attempt = async (targetUrl: string): Promise<Response> => {
+    const res = await tryFetch(targetUrl);
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return tryFetch(targetUrl);
+    }
+    return res;
+  };
+
   try {
-    const first = await tryFetch(finalUrl);
+    const first = await attempt(finalUrl);
     if (first.ok) return first;
     if (finalUrl.startsWith(BASE)) {
       const fallbackUrl = finalUrl.replace(BASE, BASE_FALLBACK);
-      const second = await tryFetch(fallbackUrl);
+      const second = await attempt(fallbackUrl);
       return second;
     }
     return first;
   } catch (err) {
     if (finalUrl.startsWith(BASE)) {
       const fallbackUrl = finalUrl.replace(BASE, BASE_FALLBACK);
-      return tryFetch(fallbackUrl);
+      return attempt(fallbackUrl);
     }
     throw err;
   }
@@ -278,25 +306,130 @@ export async function quoteMultiple(symbols: string[]): Promise<QuoteResult[]> {
   }))];
 }
 
+async function safeJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return {}; }
+}
+
+const _chartCache = new Map<string, { data: ChartPoint[]; previousClose: number | null; ts: number }>();
+const CHART_CACHE_TTL = 5 * 60_000;
+
+let _warmupDone = false;
+async function ensureWarmup() {
+  if (_warmupDone) return;
+  _warmupDone = true;
+  try {
+    await fetch(`${BASE}/v8/finance/chart/AAPL?range=5d&interval=1d`, {
+      headers: { "User-Agent": UA },
+      cache: "no-store",
+    });
+  } catch { /* ignore */ }
+}
+
+const _requestQueue: Array<() => Promise<void>> = [];
+let _queueRunning = false;
+async function runQueue() {
+  if (_queueRunning) return;
+  _queueRunning = true;
+  while (_requestQueue.length > 0) {
+    const task = _requestQueue.shift()!;
+    await task();
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  _queueRunning = false;
+}
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    _requestQueue.push(async () => {
+      try { resolve(await fn()); } catch (e) { reject(e); }
+    });
+    runQueue();
+  });
+}
+
+type ChartJson = { chart?: { result?: Array<{ timestamp?: number[]; meta?: Record<string, unknown>; indicators?: Record<string, unknown> }> } };
+
+function periodToRange(period1: string, period2: string): string | null {
+  const ms = new Date(period2).getTime() - new Date(period1).getTime();
+  const days = ms / 86400000;
+  if (days <= 1.5) return "1d";
+  if (days <= 6) return "5d";
+  if (days <= 35) return "1mo";
+  if (days <= 100) return "3mo";
+  if (days <= 200) return "6mo";
+  if (days <= 400) return "1y";
+  if (days <= 800) return "2y";
+  if (days <= 2000) return "5y";
+  if (days <= 4000) return "10y";
+  return "max";
+}
+
+function rangeToInterval(range: string): string {
+  switch (range) {
+    case "1d": return "5m";
+    case "5d": return "1h";
+    case "1mo": case "3mo": case "6mo": case "1y": case "2y": return "1d";
+    case "5y": case "10y": return "1wk";
+    case "max": return "1mo";
+    default: return "1d";
+  }
+}
+
 export async function chart(symbol: string, period1: string, period2: string, interval = "1d"): Promise<{ data: ChartPoint[]; previousClose: number | null }> {
   const norm = normalizeSymbol(symbol);
-  const p1 = Math.floor(new Date(period1).getTime() / 1000);
-  const p2 = Math.floor(new Date(period2).getTime() / 1000);
-  let url = `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?interval=${interval}&period1=${p1}&period2=${p2}`;
-  let res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0" } }, 12000);
-  let json = await res.json();
+  const range = periodToRange(period1, period2);
+  const effectiveInterval = range ? rangeToInterval(range) : interval;
+  const cacheKey = `${norm}|${range || interval}`;
+
+  const cached = _chartCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CHART_CACHE_TTL) {
+    return { data: cached.data, previousClose: cached.previousClose };
+  }
+
+  await ensureWarmup();
+
+  const chartFetch = async (chartUrl: string): Promise<ChartJson> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      const res = await fetch(chartUrl, {
+        headers: { "User-Agent": UA },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const text = await res.text();
+      try { return JSON.parse(text) as ChartJson; } catch { return {}; }
+    } catch {
+      clearTimeout(timer);
+      return {};
+    }
+  };
+
+  const url = range
+    ? `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?range=${range}&interval=${effectiveInterval}`
+    : `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?interval=${interval}&period1=${Math.floor(new Date(period1).getTime() / 1000)}&period2=${Math.floor(new Date(period2).getTime() / 1000)}`;
+
+  const json = await chartFetch(url);
   let result = json.chart?.result?.[0];
 
-  if (!result?.timestamp?.length && ["5m", "1h"].includes(interval)) {
-    url = `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?interval=1d&period1=${p1}&period2=${p2}`;
-    res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0" } }, 12000);
-    json = await res.json();
-    result = json.chart?.result?.[0];
-    if (result) return { data: formatChartResult(result, "1d"), previousClose: extractPreviousClose(result) };
+  if (!result?.timestamp?.length && ["5m", "1h"].includes(effectiveInterval)) {
+    const fallbackUrl = range
+      ? `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?range=${range}&interval=1d`
+      : `${BASE}/v8/finance/chart/${encodeURIComponent(norm)}?interval=1d&period1=${Math.floor(new Date(period1).getTime() / 1000)}&period2=${Math.floor(new Date(period2).getTime() / 1000)}`;
+    const json2 = await chartFetch(fallbackUrl);
+    result = json2.chart?.result?.[0];
+    if (result) {
+      const out = { data: formatChartResult(result, "1d"), previousClose: extractPreviousClose(result) };
+      _chartCache.set(cacheKey, { ...out, ts: Date.now() });
+      return out;
+    }
   }
-  if (!result) throw new Error("Invalid response");
+  if (!result) throw new Error("Invalid response: " + JSON.stringify(json).slice(0, 200));
 
-  return { data: formatChartResult(result, interval), previousClose: extractPreviousClose(result) };
+  const out = { data: formatChartResult(result, effectiveInterval), previousClose: extractPreviousClose(result) };
+  _chartCache.set(cacheKey, { ...out, ts: Date.now() });
+  return out;
 }
 
 function extractPreviousClose(result: { meta?: { previousClose?: number; chartPreviousClose?: number } }): number | null {

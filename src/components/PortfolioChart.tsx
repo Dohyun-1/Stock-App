@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { format } from "date-fns";
 
 function pickPortfolioTicks(data: { date: string }[], period: string): string[] {
@@ -103,11 +103,11 @@ function formatYAxis(value: number): string {
 }
 
 function calcYAxisWidth(data: { total: number }[]): number {
-  if (data.length === 0) return 55;
+  if (data.length === 0) return 58;
   const maxVal = Math.max(...data.map((d) => Math.abs(d.total)));
   const sampleStr = formatYAxis(maxVal);
-  const charWidth = 8;
-  return Math.max(48, Math.min(90, sampleStr.length * charWidth + 14));
+  const charWidth = 9;
+  return Math.max(52, Math.min(96, sampleStr.length * charWidth + 20));
 }
 
 export default function PortfolioChart({
@@ -132,8 +132,8 @@ export default function PortfolioChart({
   const max = Math.max(...data.map((x) => Number(x.total)));
 
   const range = max - min || 1;
-  const yMin = min - range * 0.02;
-  const yMax = max + range * 0.02;
+  const yMin = min - range * 0.005;
+  const yMax = max + range * 0.005;
 
   const pct = yMax === yMin ? 50 : ((yMax - start) / (yMax - yMin)) * 100;
   const baselinePct = Math.max(1, Math.min(99, pct));
@@ -144,14 +144,15 @@ export default function PortfolioChart({
 
   const ticks = pickPortfolioTicks(data, period);
   const yAxisWidth = calcYAxisWidth(data);
+  const leftMargin = yAxisWidth + 16;
 
   return (
     <div className="relative mx-auto h-[600px] max-w-2xl">
-      <div className={`pointer-events-none absolute right-2 top-1 z-10 text-base font-extrabold drop-shadow-sm ${isUp ? "text-green-400" : "text-red-400"}`}>
+      <div className={`pointer-events-none absolute right-0 top-0 z-10 text-right text-sm font-extrabold drop-shadow-sm ${isUp ? "text-green-400" : "text-red-400"}`}>
         {`${isUp ? "+" : ""}${currencySymbol}${Math.round(changeAmount).toLocaleString("en-US")} (${isUp ? "+" : ""}${changePercent.toFixed(2)}%)`}
       </div>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 16, right: 14, left: 4, bottom: 10 }}>
+        <AreaChart data={data} margin={{ top: 28, right: 8, left: leftMargin, bottom: 10 }}>
           <defs>
             {/* Stroke: green above baseline, red below */}
             <linearGradient id="pf-stroke" x1="0" y1="0" x2="0" y2="1">
@@ -181,18 +182,9 @@ export default function PortfolioChart({
             width={yAxisWidth}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#e2e8f0", fontSize: 13, fontWeight: 600 }}
+            tick={{ fill: "#e2e8f0", fontSize: 11, fontWeight: 600 }}
             tickFormatter={(v) => formatYAxis(v)}
-            tickCount={8}
-          />
-          <ReferenceLine
-            y={start}
-            stroke="#cbd5e1"
-            strokeDasharray="6 4"
-            strokeWidth={1.5}
-            strokeOpacity={0.9}
-            ifOverflow="extendDomain"
-            label={{ value: `기준 ${formatYAxis(start)}`, position: "left", fill: "#94a3b8", fontSize: 11 }}
+            tickCount={5}
           />
           <Tooltip
             formatter={(v: number) => {

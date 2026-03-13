@@ -32,6 +32,11 @@ npm start
 4. **방화벽** – Mac 방화벽이 Node를 차단하는지 확인
 5. **시크릿/프라이빗 창** – 브라우저 확장 프로그램 영향 제거
 
+## 배포 (Deployment)
+
+- **Vercel:** (배포 후 여기에 주소 적기 예: https://itakeurmoney.vercel.app)
+- **GitHub:** https://github.com/Dohyun-1/Stock-App
+
 ## 환경변수 (선택)
 
 - `DART_API_KEY` - DART 공시 Open API 키 (dart.fss.or.kr에서 발급)

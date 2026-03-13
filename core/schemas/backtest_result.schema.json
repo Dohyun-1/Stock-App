@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BacktestResult",
+  "type": "object",
+  "required": ["strategy_id", "cagr", "sharpe", "max_drawdown", "turnover"],
+  "properties": {
+    "strategy_id": { "type": "string" },
+    "cagr": { "type": "number" },
+    "sharpe": { "type": "number" },
+    "sortino": { "type": "number" },
+    "max_drawdown": { "type": "number" },
+    "turnover": { "type": "number" },
+    "benchmark_alpha": { "type": "number" }
+  }
+}

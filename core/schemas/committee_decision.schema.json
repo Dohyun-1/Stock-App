@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommitteeDecision",
+  "type": "object",
+  "required": ["approved", "allocations", "confidence", "rationale"],
+  "properties": {
+    "approved": { "type": "boolean" },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ticker", "target_weight"],
+        "properties": {
+          "ticker": { "type": "string" },
+          "target_weight": { "type": "number" }
+        }
+      }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rationale": { "type": "string" },
+    "conditions": { "type": "array", "items": { "type": "string" } }
+  }
+}

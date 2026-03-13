@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0ea5e9;
+  --accent: #06b6d4;
+  --bg-dark: #0f172a;
+}
+
+html {
+  background: #0f172a;
+}
+
+body {
+  background: #0f172a;
+  background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+/* StockPro logo — rising chart animation */
+@keyframes chart-draw {
+  0% { stroke-dashoffset: 60; opacity: 0; }
+  30% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes chart-fill-in {
+  0%, 40% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes chart-dot-pulse {
+  0%, 100% { r: 2; fill: #22d3ee; }
+  50% { r: 3; fill: #34d399; }
+}
+
+@keyframes chart-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(34,211,238,0.4)); }
+  50% { filter: drop-shadow(0 0 6px rgba(34,211,238,0.8)); }
+}
+
+.animate-chart-draw {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: chart-draw 1.5s ease-out forwards, chart-glow 3s ease-in-out infinite 1.5s;
+}
+
+.animate-chart-fill {
+  opacity: 0;
+  animation: chart-fill-in 2s ease-out forwards;
+}
+
+.animate-chart-dot {
+  fill: #22d3ee;
+  animation: chart-dot-pulse 2s ease-in-out infinite;
+}
+
+.animate-chart-arrow {
+  animation: chart-glow 2s ease-in-out infinite;
+}

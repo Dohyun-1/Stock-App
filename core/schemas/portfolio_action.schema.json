@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PortfolioAction",
+  "type": "object",
+  "required": ["ticker", "target_weight", "action", "urgency", "reason"],
+  "properties": {
+    "ticker": { "type": "string" },
+    "target_weight": { "type": "number" },
+    "action": { "enum": ["buy", "sell", "hold"] },
+    "urgency": { "enum": ["low", "normal", "high"] },
+    "reason": { "type": "string" }
+  }
+}

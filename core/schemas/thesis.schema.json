@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Thesis",
+  "type": "object",
+  "required": ["agent_id", "ticker", "claims", "risks", "score"],
+  "properties": {
+    "agent_id": { "type": "string" },
+    "ticker": { "type": "string" },
+    "claims": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

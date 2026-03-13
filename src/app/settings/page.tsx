@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAppCurrency } from "@/contexts/CurrencyContext";
-import Image from "next/image";
 
 const WATCHLIST_KEY = "stockpro_watchlist";
 const SEARCH_HISTORY_KEY = "market-search-history";
@@ -129,7 +128,7 @@ export default function SettingsPage() {
       {/* Profile */}
       <div className="flex flex-col items-center pb-2 pt-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-600/30">
-          <Image src="/stockpro-logo.png" alt="StockPro" width={40} height={40} className="rounded-lg" />
+          <img src="/stockpro-logo.png" alt="StockPro" width={40} height={40} className="rounded-lg" />
         </div>
         <p className="mt-3 text-lg font-bold text-white">StockPro</p>
         <p className="mt-0.5 text-sm text-white">나만의 투자 파트너</p>

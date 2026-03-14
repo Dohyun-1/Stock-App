@@ -77,13 +77,14 @@ async function fetchOfficialSources(request: NextRequest, symbol: string): Promi
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
-  const investorId = String(body?.investor_id || "warren_buffett");
-  const holdings = Array.isArray(body?.holdings) ? body.holdings : [];
-  const investor = getInvestorById(investorId);
-  if (!investor) return NextResponse.json({ error: "investor not found" }, { status: 404 });
+  try {
+    const body = await request.json().catch(() => ({}));
+    const investorId = String(body?.investor_id || "warren_buffett");
+    const holdings = Array.isArray(body?.holdings) ? body.holdings : [];
+    const investor = getInvestorById(investorId);
+    if (!investor) return NextResponse.json({ error: "investor not found" }, { status: 404 });
 
-  const normalized: HoldingInput[] = holdings
+    const normalized: HoldingInput[] = holdings
     .map((h: { symbol?: string; company_name?: string; shares?: number; average_price?: number }) => ({
       symbol: String(h.symbol || "").toUpperCase(),
       company_name: String(h.company_name || h.symbol || ""),
@@ -155,4 +156,10 @@ export async function POST(request: NextRequest) {
     evaluations,
     generated_at: new Date().toISOString(),
   });
+  } catch (e) {
+    return NextResponse.json(
+      { error: "Investor analysis failed", detail: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    );
+  }
 }

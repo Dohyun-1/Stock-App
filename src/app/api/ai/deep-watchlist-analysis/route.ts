@@ -85,9 +85,10 @@ async function fetchOfficialSources(request: NextRequest, symbol: string): Promi
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
-  const holdings = Array.isArray(body?.holdings) ? body.holdings : [];
-  const normalized: HoldingInput[] = holdings
+  try {
+    const body = await request.json().catch(() => ({}));
+    const holdings = Array.isArray(body?.holdings) ? body.holdings : [];
+    const normalized: HoldingInput[] = holdings
     .map((h: { symbol?: string; company_name?: string }) => ({
       symbol: String(h.symbol || "").toUpperCase(),
       company_name: String(h.company_name || h.symbol || ""),
@@ -158,4 +159,10 @@ export async function POST(request: NextRequest) {
     items: results,
     generated_at: new Date().toISOString(),
   });
+  } catch (e) {
+    return NextResponse.json(
+      { error: "Deep watchlist analysis failed", detail: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    );
+  }
 }

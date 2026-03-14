@@ -128,7 +128,8 @@ export default function SettingsPage() {
       {/* Profile */}
       <div className="flex flex-col items-center pb-2 pt-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-600/30">
-          <img src="/stockpro-logo.png" alt="StockPro" width={40} height={40} className="rounded-lg" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- Prerender-safe; Next/Image caused Invalid URL on Vercel */}
+        <img src="/stockpro-logo.png" alt="StockPro" width={40} height={40} className="rounded-lg" />
         </div>
         <p className="mt-3 text-lg font-bold text-white">StockPro</p>
         <p className="mt-0.5 text-sm text-white">나만의 투자 파트너</p>

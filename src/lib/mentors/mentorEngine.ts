@@ -3,6 +3,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 import { MENTOR_MAP, type MentorProfile, type Signal, type PortfolioRules, type DecisionTriggers, type InvestorSources } from "./mentorProfiles";
+import { MENTOR_UNIVERSES, evaluateSingleStockForMentor, type QuoteData } from "./mentorPortfolio";
 
 /* ── Types ── */
 export interface StockMetrics {
@@ -233,9 +234,41 @@ function capSignal(current: Signal, maxAllowed: Signal): Signal {
 }
 
 /* ── Evaluate stock from one mentor's perspective ── */
-export function evaluateStock(stock: StockMetrics, mentorId: string): MentorVerdict {
+export function evaluateStock(stock: StockMetrics, mentorId: string, quote?: QuoteData | null): MentorVerdict {
   const mentor = MENTOR_MAP[mentorId];
   if (!mentor) throw new Error(`Unknown mentor: ${mentorId}`);
+
+  const isInMentorPortfolio = MENTOR_UNIVERSES[mentorId]?.some((s) => s.symbol === stock.symbol) ?? false;
+
+  if (quote && isInMentorPortfolio) {
+    const portfolioVerdict = evaluateSingleStockForMentor(mentorId, stock.symbol, quote);
+    if (portfolioVerdict) {
+      const thesis = [
+        portfolioVerdict.thesisSummary,
+        portfolioVerdict.thesisDetail.macro,
+        portfolioVerdict.thesisDetail.fundamental,
+        portfolioVerdict.thesisDetail.technical,
+      ].join(" ");
+      const keyFactors: MentorVerdict["keyFactors"] = portfolioVerdict.keyMetrics.map((k) => ({
+        metric: k.label,
+        value: k.value,
+        assessment: k.assessment,
+      }));
+      const riskWarning = generateRiskWarning(stock, mentor, portfolioVerdict.conviction, keyFactors);
+      const actionAdvice = generateAction(mentor, portfolioVerdict.signal, stock, portfolioVerdict.conviction, keyFactors);
+      return {
+        mentorId: mentor.id,
+        mentorName: mentor.name,
+        mentorNameKo: mentor.nameKo,
+        signal: portfolioVerdict.signal,
+        score: portfolioVerdict.conviction,
+        thesis,
+        keyFactors,
+        riskWarning,
+        actionAdvice,
+      };
+    }
+  }
 
   let totalScore = 0;
   let totalWeight = 0;
@@ -263,13 +296,20 @@ export function evaluateStock(stock: StockMetrics, mentorId: string): MentorVerd
     keyFactors.push({ metric: "밸류에이션 게이트", value: gateReason, assessment: "negative" });
   }
 
-  const thesis = generateDetailedThesis(stock, mentor, score, keyFactors);
-  const riskWarning = generateRiskWarning(stock, mentor, score, keyFactors);
-  const actionAdvice = generateAction(mentor, signal, stock, score, keyFactors);
+  let finalSignal = signal;
+  let finalScore = score;
+  if (isInMentorPortfolio && (signal === "SELL" || signal === "STRONG_SELL")) {
+    finalSignal = "HOLD";
+    finalScore = Math.max(score, 50);
+  }
+
+  const thesis = generateDetailedThesis(stock, mentor, finalScore, keyFactors);
+  const riskWarning = generateRiskWarning(stock, mentor, finalScore, keyFactors);
+  const actionAdvice = generateAction(mentor, finalSignal, stock, finalScore, keyFactors);
 
   return {
     mentorId: mentor.id, mentorName: mentor.name, mentorNameKo: mentor.nameKo,
-    signal, score, thesis, keyFactors, riskWarning, actionAdvice,
+    signal: finalSignal, score: finalScore, thesis, keyFactors, riskWarning, actionAdvice,
   };
 }
 
@@ -668,8 +708,8 @@ function generateAction(
 }
 
 /* ── Evaluate from ALL mentors ── */
-export function evaluateStockAllMentors(stock: StockMetrics): MentorVerdict[] {
-  return Object.keys(MENTOR_MAP).map((id) => evaluateStock(stock, id));
+export function evaluateStockAllMentors(stock: StockMetrics, quote?: QuoteData | null): MentorVerdict[] {
+  return Object.keys(MENTOR_MAP).map((id) => evaluateStock(stock, id, quote));
 }
 
 /* ── Market Condition Guides ── */

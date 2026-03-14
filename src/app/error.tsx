@@ -10,13 +10,15 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    if (error) console.error(error);
   }, [error]);
+
+  const message = error?.message ?? "알 수 없는 오류가 발생했습니다.";
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
       <h2 className="text-xl font-bold text-red-400">오류가 발생했습니다</h2>
-      <p className="text-white">{error.message}</p>
+      <p className="text-white">{message}</p>
       <button
         onClick={reset}
         className="rounded-lg bg-cyan-500 px-4 py-2 font-medium text-white hover:bg-cyan-600"

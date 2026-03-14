@@ -72,8 +72,8 @@ type TabId = "portfolio" | "mentor" | "guide" | "calculator";
 const TABS: { key: TabId; label: string; icon: React.ReactNode; color: string }[] = [
   { key: "portfolio", label: "거장 포트폴리오", icon: <Target size={16} />, color: "bg-violet-500" },
   { key: "mentor", label: "멘토 분석", icon: <BookOpen size={16} />, color: "bg-indigo-500" },
-  { key: "guide", label: "투자 가이드", icon: <GraduationCap size={16} />, color: "bg-cyan-500" },
   { key: "calculator", label: "수익률 계산", icon: <Calculator size={16} />, color: "bg-emerald-500" },
+  { key: "guide", label: "투자 가이드", icon: <GraduationCap size={16} />, color: "bg-cyan-500" },
 ];
 
 function InvestorsGuideContent() {

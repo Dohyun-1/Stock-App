@@ -13,6 +13,7 @@ import {
   type StockMetrics,
   type MentorVerdict,
 } from "@/lib/mentors/mentorEngine";
+import type { QuoteData } from "@/lib/mentors/mentorPortfolio";
 
 const STORAGE_KEY = "stockpro_selected_mentor";
 
@@ -70,6 +71,37 @@ function toStockMetrics(s: StockInsightData): StockMetrics {
     grossMargin: null,
     volatility: s.advanced?.annualizedVolatility ?? s.advanced?.volatility30d ?? null,
     currentRatio: s.advanced?.currentRatio ?? null,
+  };
+}
+
+/** Build QuoteData from insight so 거장 포트폴리오와 동일한 체크리스트/의견을 멘토 분석에서 사용할 수 있음 */
+function buildQuoteFromInsight(s: StockInsightData & {
+  change?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  fiftyDayMA?: number | null;
+  twoHundredDayMA?: number | null;
+  volume?: number;
+  avgVolume?: number;
+}): QuoteData {
+  return {
+    symbol: s.symbol,
+    regularMarketPrice: s.price,
+    regularMarketChangePercent: s.change,
+    trailingPE: s.pe ?? undefined,
+    debtToEquity: s.debtToEquity ?? undefined,
+    dividendYield: s.dividendYield ?? undefined,
+    beta: s.beta ?? undefined,
+    marketCap: s.marketCap ?? undefined,
+    revenueGrowth: s.revenueGrowth ?? undefined,
+    operatingMargins: s.operatingMargins ?? undefined,
+    freeCashflow: s.freeCashflow ?? undefined,
+    pegRatio: s.pegRatio ?? undefined,
+    fiftyTwoWeekHigh: s.fiftyTwoWeekHigh,
+    fiftyTwoWeekLow: s.fiftyTwoWeekLow,
+    fiftyDayAverage: s.fiftyDayMA ?? undefined,
+    twoHundredDayAverage: s.twoHundredDayMA ?? undefined,
+    averageVolume: s.avgVolume,
   };
 }
 
@@ -310,7 +342,8 @@ export default function MentorInsight({ stocks }: { stocks: StockInsightData[] }
     const results: Record<string, MentorVerdict[]> = {};
     for (const s of stocks) {
       const metrics = toStockMetrics(s);
-      results[s.symbol] = evaluateStockAllMentors(metrics);
+      const quote = buildQuoteFromInsight(s);
+      results[s.symbol] = evaluateStockAllMentors(metrics, quote);
     }
     setVerdicts(results);
   }, [stocks]);

@@ -612,6 +612,55 @@ function generateDetailedThesis(
   return { summary, macro, fundamental, technical };
 }
 
+/** Single-stock verdict using the same checklist as 거장 포트폴리오. Returns null if symbol is not in this mentor's universe. */
+export function evaluateSingleStockForMentor(
+  mentorId: string,
+  symbol: string,
+  quote: QuoteData,
+): {
+  signal: Signal;
+  conviction: number;
+  thesisSummary: string;
+  thesisDetail: { macro: string; fundamental: string; technical: string };
+  keyMetrics: { label: string; value: string; assessment: "positive" | "neutral" | "negative" }[];
+} | null {
+  const mentor = MENTOR_MAP[mentorId];
+  if (!mentor) return null;
+  const universe = MENTOR_UNIVERSES[mentorId] || [];
+  const stock = universe.find((s) => s.symbol === symbol);
+  if (!stock) return null;
+  const checklistFn = CHECKLIST_FNS[mentorId];
+  if (!checklistFn) return null;
+
+  const checklist = checklistFn(quote, stock);
+  const passed = checklist.filter((c) => c.passed).length;
+  const total = checklist.length;
+  const passRate = total > 0 ? passed / total : 0;
+  const conviction = Math.round(Math.max(20, Math.min(98, passRate * 100 + (passRate > 0.7 ? 10 : 0))));
+  const signal: Signal =
+    conviction >= 80 ? "STRONG_BUY" : conviction >= 60 ? "BUY" : conviction >= 40 ? "HOLD" : conviction >= 25 ? "SELL" : "STRONG_SELL";
+
+  const thesis = generateDetailedThesis(mentor, stock, quote, checklist, conviction);
+
+  const keyMetrics: { label: string; value: string; assessment: "positive" | "neutral" | "negative" }[] = [];
+  for (const c of checklist.slice(0, 8)) {
+    const value = c.detail.split(" ")[0] === "데이터" ? "N/A" : c.detail.split("—")[0].trim().slice(0, 24);
+    keyMetrics.push({
+      label: c.label.split("(")[0].trim(),
+      value,
+      assessment: c.passed ? "positive" : "negative",
+    });
+  }
+
+  return {
+    signal,
+    conviction,
+    thesisSummary: thesis.summary,
+    thesisDetail: { macro: thesis.macro, fundamental: thesis.fundamental, technical: thesis.technical },
+    keyMetrics,
+  };
+}
+
 /* ─────────────── Portfolio Builder ─────────────── */
 
 export function buildMentorPortfolio(

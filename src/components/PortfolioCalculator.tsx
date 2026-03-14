@@ -414,7 +414,7 @@ export default function PortfolioCalculator() {
             <div className="rounded-xl border border-white/20 bg-slate-800/50 p-4">
               <p className="text-sm text-white">총 수익률</p>
               <p className={`text-2xl font-bold ${Number(totalReturn) >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {totalReturn}%
+                {Number(totalReturn).toLocaleString(curInfo.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
               </p>
             </div>
             <div className="rounded-xl border border-white/20 bg-slate-800/50 p-4">

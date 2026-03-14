@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import GlobalSearchBar from "./GlobalSearchBar";
 import CurrencyTicker from "./CurrencyTicker";
@@ -69,7 +68,8 @@ export default function Navbar() {
       <header className="sticky top-0 z-50 border-b border-white/20 bg-slate-900/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
           <Link href="/" className="group relative flex shrink-0 items-center gap-2">
-            <Image src="/stockpro-logo.png" alt="주식류" width={32} height={32} className="rounded-lg" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- Prerender-safe; Next/Image causes Invalid URL on Vercel */}
+            <img src="/stockpro-logo.png" alt="주식류" width={32} height={32} className="rounded-lg" />
             <span className="text-xl font-bold text-cyan-400">주식류</span>
           </Link>
           <GlobalSearchBar />

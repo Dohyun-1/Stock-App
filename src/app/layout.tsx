@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import SessionProvider from "@/components/SessionProvider";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "주식류 - 종합 주식 투자 플랫폼",
   description: "실시간 시장 정보, 기업 분석, 수익률 계산, 투자 가이드",

@@ -60,9 +60,54 @@ https://프로젝트명.vercel.app/api/auth/callback/google
 
 ---
 
-## 4. 로컬에서만 사용할 때
+## 4. 400 redirect_uri_mismatch 해결
+
+이 오류는 **앱이 Google에 보내는 redirect_uri**와 **Google Cloud에 등록한 URI**가 **한 글자라도 다를 때** 납니다.
+
+### 1) 실제로 보내진 URI 확인
+
+- 로그인 시도 후 400 오류가 나는 **브라우저 주소창**을 보세요.
+- URL에 `redirect_uri=...` 가 있을 수 있습니다 (인코딩되어 있음).
+- 또는 Google 오류 페이지에 "요청한 리디렉션 URI: https://..." 로 **실제로 사용된 URI**가 표시됩니다.
+- 그 **표시된 URI 전체**를 복사해서 Google Cloud **승인된 리디렉션 URI**에 **그대로** 추가하세요.
+
+### 2) 형식 정확히 맞추기
+
+NextAuth는 다음 형식으로 보냅니다:
+
+```
+{NEXTAUTH_URL}/api/auth/callback/google
+```
+
+- **끝에 슬래시(/) 없음**: `https://도메인.vercel.app/api/auth/callback/google` ✅  
+  `https://도메인.vercel.app/api/auth/callback/google/` ❌
+- **프로토콜**: Vercel 배포는 반드시 `https://`
+- **도메인**: Vercel에 설정한 `NEXTAUTH_URL`의 도메인과 **완전히 동일**해야 함.
+
+### 3) 할 일 순서
+
+1. **Vercel** → **Settings** → **Environment Variables**  
+   - `NEXTAUTH_URL` = 실제 접속하는 주소 (예: `https://stock-app-xxx.vercel.app`)  
+   - 끝에 `/` 없이 저장.
+2. **Google Cloud Console** → 사용자 인증 정보 → 해당 OAuth 클라이언트  
+   - **승인된 리디렉션 URI**에 아래 **한 줄** 추가 (도메인만 본인 걸로 바꿈):  
+     `https://실제도메인.vercel.app/api/auth/callback/google`
+   - **저장** 클릭.
+3. **Vercel**에서 **Redeploy** 한 번 실행.
+4. 1~2분 후 다시 로그인 시도.
+
+### 4) Preview/프로덕션 URL이 다를 때
+
+- 프로덕션: `https://프로젝트.vercel.app`
+- Preview(브랜치별): `https://프로젝트-xxx팀이름.vercel.app`  
+Preview URL로도 로그인하려면, **그 Preview URL 기준** 리디렉션 URI를 Google에 **추가로** 등록해야 합니다.  
+예: `https://프로젝트-git-브랜치-팀.vercel.app/api/auth/callback/google`
+
+---
+
+## 5. 로컬에서만 사용할 때
 
 - 로컬: `NEXTAUTH_URL=http://localhost:3008`
 - Google 리디렉션 URI에 `http://localhost:3008/api/auth/callback/google` 추가.
 
-이후에도 401이 나오면, Vercel에 설정한 `GOOGLE_CLIENT_ID` 값(앞뒤 일부만 가려서)과 사용 중인 Vercel URL을 알려주면 다음 단계로 짚어볼 수 있습니다.
+이후에도 401/400이 나오면, Vercel에 설정한 `GOOGLE_CLIENT_ID` 값(앞뒤 일부만 가려서)과 사용 중인 Vercel URL을 알려주면 다음 단계로 짚어볼 수 있습니다.

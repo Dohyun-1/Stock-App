@@ -1,5 +1,28 @@
 node_modules
 .next
 data
-.env*.local
 .DS_Store
+
+# Secrets
+.env
+.env.*.local
+.env.local
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pycache_local/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
